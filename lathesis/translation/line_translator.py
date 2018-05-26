@@ -62,8 +62,11 @@ def refine_latex_translation(new_line):
     return refined_line
 
 
-def translate_line(text, language):
-    trans = Translator()
+def translate_line(text, language, translator=None):
+    if translator is None:
+        trans = Translator()
+    else:
+        trans = translator
     try:
         translated_text = trans.translate(text, language).text
     except Exception as e:
