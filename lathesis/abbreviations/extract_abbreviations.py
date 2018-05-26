@@ -45,7 +45,7 @@ def spot_abbreviations(path):
 def get_abbreviations(path):
     abbreviations = spot_abbreviations(path)
     for a in sorted(abbreviations.keys()):
-        print "{}: {}".format(a, abbreviations[a])
+        print "{}: {} \\\\".format(a, abbreviations[a])
 
 if __name__ == "__main__":
     args = get_args()
