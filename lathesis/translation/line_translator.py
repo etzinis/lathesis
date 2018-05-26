@@ -67,18 +67,12 @@ def translate_line(text, language):
     try:
         translated_text = trans.translate(text, language).text
     except Exception as e:
-        translated_text = None
+        translated_text = ''
         print e
         print 'Skipping...'
 
-    print '\n'
-    print translated_text
-
     refined_text = refine_latex_translation(translated_text)
-
-    print '\n'
-    print '~'*20
-    print refined_text
+    return refined_text
 
 if __name__ == "__main__":
     args = get_args()
