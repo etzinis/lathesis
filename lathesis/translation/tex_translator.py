@@ -17,7 +17,7 @@ class LatexTranslator(object):
         self.language = language
         self.translator = Translator()
         with open(self.path) as f:
-            self.lines = f.readlines()[:200]
+            self.lines = f.readlines()
 
         self.parts_to_skip = ['equation', 'array', 'figure',
                               'algorithm', 'hyp', 'thm', 'table',
@@ -46,29 +46,43 @@ class LatexTranslator(object):
                              translator=self.translator)
 
                 self.lines[i] = '\item ' + trans_text
+
+    def remove_spaces_from_label_lines(self):
+        for i in np.arange(len(self.lines)):
+            if self.lines[i].startswith('\\label{'):
+                print self.lines[i]
+                self.lines[i] = self.lines[i].replace(' ', '')
                 print self.lines[i]
 
     def translate_latex(self):
+        # remove spaces from labels as they cause problem in later
+        # process
+        self.remove_spaces_from_label_lines()
+
         i = 0
         while i < len(self.lines):
             this_line = self.lines[i]
 
-            # check lines for parts to skip
-            part = self.get_begin_end_part(this_line,
-                                           self.parts_to_skip)
-            if part is not None:
-                i = self.skip_part_begin_end(i, part)
-                continue
+            # # check lines for parts to skip
+            # part = self.get_begin_end_part(this_line,
+            #                                self.parts_to_skip)
+            # if part is not None:
+            #     i = self.skip_part_begin_end(i, part)
+            #     continue
 
-            # special translation for itemize and enumerate
-            part = self.get_begin_end_part(this_line,
-                                           self.list_commands)
-            if part is not None:
-                print part
-                start_i = i
-                end_i = self.skip_part_begin_end(i, part) - 1
-                self.translate_inside_list(start_i, end_i)
-                i = end_i + 1
+            # # special translation for itemize and enumerate
+            # part = self.get_begin_end_part(this_line,
+            #                                self.list_commands)
+            # if part is not None:
+            #     start_i = i
+            #     end_i = self.skip_part_begin_end(i, part) - 1
+            #     self.translate_inside_list(start_i, end_i)
+            #     i = end_i + 1
+            #     continue
+
+            # for special lines skip the translation
+            if this_line.startswith('\\'):
+                pass
 
             i += 1
 
