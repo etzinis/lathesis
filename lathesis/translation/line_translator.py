@@ -29,7 +29,7 @@ def get_args():
 def remove_spaces_for_references_and_citations(line):
 
     refined_line = line
-    for command in ['ref', 'cite', 'Ref']:
+    for command in ['ref', 'cite', 'Ref', 'Cite']:
         command_string = "\\"+command+"{"
         ref_inlines = refined_line.split(command_string)
         if len(ref_inlines) > 1:
@@ -70,12 +70,14 @@ def translate_line(text, language, translator=None):
         trans = translator
     try:
         translated_text = trans.translate(text, language).text
+        refined_text = refine_latex_translation(translated_text)
     except Exception as e:
-        translated_text = ''
+        refined_text = text
+        print "Failed to translate: {}".format(refined_text)
         print e
         print 'Skipping...'
 
-    refined_text = refine_latex_translation(translated_text)
+
     return refined_text
 
 if __name__ == "__main__":
