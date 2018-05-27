@@ -19,7 +19,7 @@ class LatexTranslator(object):
         self.language = language
         self.translator = Translator()
         with open(self.path) as f:
-            self.lines = f.readlines()[:100]
+            self.lines = f.readlines()
 
         self.parts_to_skip = ['equation', 'array', 'figure',
                               'algorithm', 'hyp', 'thm', 'table',
@@ -90,7 +90,7 @@ class LatexTranslator(object):
         while i < len(self.lines):
             for j in np.arange(i - prev):
                 self.bar.next()
-                prev = i 
+                prev = i
             this_line = self.lines[i]
 
             # check lines for parts to skip
@@ -123,6 +123,15 @@ class LatexTranslator(object):
                                 translator=self.translator)
 
             i += 1
+
+        # translate captions as well
+        for i in np.arange(len(self.lines)):
+            if '\caption' in self.lines[i]:
+                before, text = self.lines[i].split('\caption{')
+                self.lines[i] = before + '\caption{' + \
+                                line_translator.translate_line(
+                                text, self.language,
+                                translator=self.translator)
 
         self.bar.finish()
 
