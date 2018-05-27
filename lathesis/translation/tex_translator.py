@@ -9,7 +9,7 @@ import numpy as np
 from googletrans import Translator
 import line_translator
 import os
-import codecs
+from progress.bar import ChargingBar
 
 
 class LatexTranslator(object):
@@ -26,6 +26,8 @@ class LatexTranslator(object):
                               'tabular']
         self.list_commands = ['itemize', 'enumerate']
         self.outpath = outpath
+        self.bar = ChargingBar('Translating Tex File...',
+                               max=len(self.lines))
 
     def skip_part_begin_end(self, i, part):
         counter = i
@@ -84,7 +86,11 @@ class LatexTranslator(object):
         self.remove_spaces_from_label_lines()
 
         i = 0
+        prev = i
         while i < len(self.lines):
+            for j in np.arange(i - prev):
+                self.bar.next()
+                prev = i 
             this_line = self.lines[i]
 
             # check lines for parts to skip
@@ -117,6 +123,8 @@ class LatexTranslator(object):
                                 translator=self.translator)
 
             i += 1
+
+        self.bar.finish()
 
         self.save_to_file()
         for i in np.arange(len(self.lines)):
