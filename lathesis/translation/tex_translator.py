@@ -15,69 +15,77 @@ class LatexTranslator(object):
     def __init__(self, path, language):
         self.path = path
         self.language = language
+        self.translator = Translator()
+        with open(self.path) as f:
+            self.lines = f.readlines()[:200]
 
-    def skip_part_begin_end(self, lines, i, part):
+        self.parts_to_skip = ['equation', 'array', 'figure',
+                              'algorithm', 'hyp', 'thm', 'table',
+                              'tabular']
+        self.list_commands = ['itemize', 'enumerate']
+
+    def skip_part_begin_end(self, i, part):
         counter = i
-        while counter < len(lines):
-            if lines[counter].startswith('\\end{'+part+'}'):
+        while counter < len(self.lines):
+            if self.lines[counter].startswith('\\end{' + part + '}'):
                 return counter + 1
             counter += 1
 
-    def get_begin_end_part(self, line, parts_to_skip):
-        for part in parts_to_skip:
+    def get_begin_end_part(self, line, parts):
+        for part in parts:
             if line.startswith('\\begin{' + part):
                 return part
         return None
 
-    def translate_inside_list(self, lines, start_i, end_i, translator):
+    def translate_inside_list(self, start_i, end_i):
         for i in np.arange(start_i, end_i):
-            if lines[i].startswith('\\item '):
-                text = lines[i].split('\\item ')[-1]
-                trans_text = line_translator.translate_line(text, '')
+            if self.lines[i].startswith('\\item '):
+                text = self.lines[i].split('\\item ')[-1]
+                trans_text = line_translator.translate_line(
+                             text, self.language,
+                             translator=self.translator)
+
+                self.lines[i] = '\item ' + trans_text
+                print self.lines[i]
 
     def translate_latex(self):
-        translator = Translator()
-
-        with open(self.path) as f:
-            lines = f.readlines()
-
-        parts_to_skip = ['equation', 'array', 'figure', 'algorithm',
-                         'hyp', 'thm', 'table', 'tabular']
-
-        translated_lines = lines
         i = 0
-        while i < len(translated_lines):
-            this_line = translated_lines[i]
+        while i < len(self.lines):
+            this_line = self.lines[i]
 
             # check lines for parts to skip
-            part = self.get_begin_end_part(this_line, parts_to_skip)
+            part = self.get_begin_end_part(this_line,
+                                           self.parts_to_skip)
             if part is not None:
-                i = self.skip_part_begin_end(lines, i, part)
+                i = self.skip_part_begin_end(i, part)
                 continue
 
             # special translation for itemize and enumerate
-            part = self.get_begin_end_part(this_line, ['itemize',
-                                                       'enumerate'])
+            part = self.get_begin_end_part(this_line,
+                                           self.list_commands)
             if part is not None:
+                print part
                 start_i = i
-                end_i = self.skip_part_begin_end(lines, i, part)
+                end_i = self.skip_part_begin_end(i, part) - 1
+                self.translate_inside_list(start_i, end_i)
+                i = end_i + 1
 
             i += 1
 
-        return translated_lines
+        return self.lines
 
 
 def get_args():
     """! Command line parser for translating text file """
     parser = argparse.ArgumentParser(
-        description='Command line parser for translating latex file' )
+        description='Command line parser for translating latex file')
     parser.add_argument("-i", "--input_tex", type=str,
-        help="""Path where a tex file is located""",
-        required=True)
+                        help="""Path where a tex file is located""",
+                        required=True)
     parser.add_argument("-l", "--language", type=str,
                         help="""Language to translate to""",
                         default='el',
-                        choices=["af", "sq", "ar","be", "bg", "ca",
+                        choices=["af", "sq", "ar", "be", "bg", "ca",
                                  "zh-CN", "zh-TW", "hr",
                                  "cs", "da", "nl", "en", "et", "tl",
                                  "fi", "fr", "gl", "de",
