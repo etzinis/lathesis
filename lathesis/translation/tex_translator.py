@@ -8,16 +8,18 @@ import argparse
 import numpy as np
 from googletrans import Translator
 import line_translator
+import os
+import codecs
 
 
 class LatexTranslator(object):
 
-    def __init__(self, path, language, outpath):
+    def __init__(self, path, language, outpath=None):
         self.path = path
         self.language = language
         self.translator = Translator()
         with open(self.path) as f:
-            self.lines = f.readlines()
+            self.lines = f.readlines()[:100]
 
         self.parts_to_skip = ['equation', 'array', 'figure',
                               'algorithm', 'hyp', 'thm', 'table',
@@ -52,6 +54,29 @@ class LatexTranslator(object):
         for i in np.arange(len(self.lines)):
             if self.lines[i].startswith('\\label{'):
                 self.lines[i] = self.lines[i].replace(' ', '')
+
+    def save_to_file(self):
+        if self.outpath is not None:
+            try:
+                if not os.path.isdir(os.path.dirname(self.outpath)):
+                    os.makedirs(os.path.dirname(self.outpath))
+            except Exception as e:
+                print "Failed to create directories: {}".format(
+                    os.path.dirname(self.outpath)
+                )
+                print e
+
+            try:
+                fo = open(self.outpath, 'wb')
+                for i in np.arange(len(self.lines)):
+                    fo.write(self.lines[i])
+                fo.close()
+
+            except Exception as e:
+                print "Failed to save translated tex in: {}".format(
+                    self.outpath
+                )
+                print e
 
     def translate_latex(self):
         # remove spaces from labels as they cause problem in later
@@ -93,6 +118,10 @@ class LatexTranslator(object):
 
             i += 1
 
+        self.save_to_file()
+        for i in np.arange(len(self.lines)):
+            print self.lines[i].split("\n")[0]
+
         return self.lines
 
 
@@ -117,7 +146,7 @@ def get_args():
                                  "ru", "sr", "sk", "sl", "es", "sw",
                                  "sv", "th", "tr", "uk",
                                  "vi", "cy", "yi"])
-    parser.add_argument("-i", "--input_tex", type=str,
+    parser.add_argument("-o", "--output_tex", type=str,
                         help="""Path where the translated tex file 
                         will be created. If the directory does not 
                         exists it will be automatically created.""",
@@ -128,5 +157,7 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
-    latex_translator = LatexTranslator(args.input_tex, args.language)
+    latex_translator = LatexTranslator(args.input_tex,
+                                       args.language,
+                                       outpath=args.output_tex)
     translated_tex = latex_translator.translate_latex()
