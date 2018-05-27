@@ -29,7 +29,7 @@ def get_args():
 def remove_spaces_for_references_and_citations(line):
 
     refined_line = line
-    for command in ['ref', 'cite']:
+    for command in ['ref', 'cite', 'Ref']:
         command_string = "\\"+command+"{"
         ref_inlines = refined_line.split(command_string)
         if len(ref_inlines) > 1:
@@ -37,14 +37,15 @@ def remove_spaces_for_references_and_citations(line):
                 closure_ind = ref_inlines[i].index('}')
                 ref_inlines[i] = (ref_inlines[i][:closure_ind].replace(
                                 ' ', '') + ref_inlines[i][closure_ind:])
-            refined_line = command_string.join(ref_inlines)
+            refined_line = command_string.lower().join(ref_inlines)
     return refined_line
 
 
 def refine_latex_translation(new_line):
     refined_line = new_line
     ref_commands = ['ref', 'cite', 'footnote', 'label', 'section',
-                    'subsection', 'subsubsection', 'caption']
+                    'subsection', 'subsubsection', 'caption',
+                    'textit', 'textbf', 'em', 'Ref']
     for com in ref_commands:
         refined_line = re.sub("\\ "+com+" {", com+"{", refined_line)
 
@@ -52,7 +53,7 @@ def refine_latex_translation(new_line):
     # and citations
 
     math_inline = refined_line.split("$")
-    for i in np.arange(1, len(math_inline)-1, 2):
+    for i in np.arange(1, len(math_inline), 2):
         math_inline[i] = math_inline[i].replace(' ', '')
     refined_line = '$'.join(math_inline)
 
