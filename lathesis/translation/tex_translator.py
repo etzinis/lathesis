@@ -12,7 +12,7 @@ import line_translator
 
 class LatexTranslator(object):
 
-    def __init__(self, path, language):
+    def __init__(self, path, language, outpath):
         self.path = path
         self.language = language
         self.translator = Translator()
@@ -23,6 +23,7 @@ class LatexTranslator(object):
                               'algorithm', 'hyp', 'thm', 'table',
                               'tabular']
         self.list_commands = ['itemize', 'enumerate']
+        self.outpath = outpath
 
     def skip_part_begin_end(self, i, part):
         counter = i
@@ -50,9 +51,7 @@ class LatexTranslator(object):
     def remove_spaces_from_label_lines(self):
         for i in np.arange(len(self.lines)):
             if self.lines[i].startswith('\\label{'):
-                print self.lines[i]
                 self.lines[i] = self.lines[i].replace(' ', '')
-                print self.lines[i]
 
     def translate_latex(self):
         # remove spaces from labels as they cause problem in later
@@ -63,26 +62,34 @@ class LatexTranslator(object):
         while i < len(self.lines):
             this_line = self.lines[i]
 
-            # # check lines for parts to skip
-            # part = self.get_begin_end_part(this_line,
-            #                                self.parts_to_skip)
-            # if part is not None:
-            #     i = self.skip_part_begin_end(i, part)
-            #     continue
+            # check lines for parts to skip
+            part = self.get_begin_end_part(this_line,
+                                           self.parts_to_skip)
+            if part is not None:
+                i = self.skip_part_begin_end(i, part)
+                continue
 
-            # # special translation for itemize and enumerate
-            # part = self.get_begin_end_part(this_line,
-            #                                self.list_commands)
-            # if part is not None:
-            #     start_i = i
-            #     end_i = self.skip_part_begin_end(i, part) - 1
-            #     self.translate_inside_list(start_i, end_i)
-            #     i = end_i + 1
-            #     continue
+            # special translation for itemize and enumerate
+            part = self.get_begin_end_part(this_line,
+                                           self.list_commands)
+            if part is not None:
+                start_i = i
+                end_i = self.skip_part_begin_end(i, part) - 1
+                self.translate_inside_list(start_i, end_i)
+                i = end_i + 1
+                continue
 
             # for special lines skip the translation
-            if this_line.startswith('\\'):
-                pass
+            if this_line.startswith('\\') or this_line.startswith('%'):
+                i += 1
+                continue
+
+            # text lines should be translated normally only if they
+            # are not empty
+            if len(this_line) > 3:
+                self.lines[i] = line_translator.translate_line(
+                                self.lines[i], self.language,
+                                translator=self.translator)
 
             i += 1
 
@@ -110,6 +117,11 @@ def get_args():
                                  "ru", "sr", "sk", "sl", "es", "sw",
                                  "sv", "th", "tr", "uk",
                                  "vi", "cy", "yi"])
+    parser.add_argument("-i", "--input_tex", type=str,
+                        help="""Path where the translated tex file 
+                        will be created. If the directory does not 
+                        exists it will be automatically created.""",
+                        default='/tmp/translated_texfile.tex')
     args = parser.parse_args()
     return args
 
