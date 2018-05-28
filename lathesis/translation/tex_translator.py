@@ -124,14 +124,26 @@ class LatexTranslator(object):
 
             i += 1
 
-        # translate captions as well
-        for i in np.arange(len(self.lines)):
-            if '\caption' in self.lines[i]:
-                before, text = self.lines[i].split('\caption{')
-                self.lines[i] = before + '\caption{' + \
-                                line_translator.translate_line(
-                                text, self.language,
-                                translator=self.translator)
+        # translate captions, chapters and sections as well
+        commands = ['caption', 'section', 'chapter',
+                    'subsection', 'subsubsection']
+        for com in commands:
+            for i in np.arange(len(self.lines)):
+                if "\\"+com in self.lines[i]:
+                    before, text = self.lines[i].split('\\'+com+'{')
+                    if com == 'caption':
+                        self.lines[i] = before + '\\' + com + '{' + \
+                                        line_translator.translate_line(
+                                            text,
+                                            self.language,
+                                            translator=self.translator)
+                    else:
+                        self.lines[i] = before + '\\'+com+'{' + \
+                                        line_translator.translate_line(
+                                        text.strip('}\n'),
+                                        self.language,
+                                        translator=self.translator) +\
+                                        '}\n'
 
         self.bar.finish()
 
