@@ -9,6 +9,12 @@ import re
 import argparse
 import numpy as np
 
+encoder = dict([(x, ''.join([str(n)+x[n] for n in np.arange(len(x))]))
+                for x in ['math', 'cite', 'ref', 'url']])
+
+decoder = {}
+for k, v in encoder.items():
+    decoder[v] = k
 
 def get_args():
     """! Command line parser for extracting """
@@ -63,23 +69,78 @@ def refine_latex_translation(new_line):
     return refined_line
 
 
+def encode_command(text, command):
+    initial_commands = []
+    encoded_text = text
+
+    command_string = "\\" + command + "{"
+    command_inlines = text.split(command_string)
+    if len(command_inlines) > 1:
+        encoded_text = command_inlines[0]
+
+        for i in np.arange(1, len(command_inlines)):
+            string_to_be_closed = command_inlines[i]
+            cnt = 1
+            closure_index = 0
+            for j, ch in enumerate(string_to_be_closed):
+                if ch == '{':
+                    cnt += 1
+                elif ch == '}':
+                    cnt -= 1
+                    if cnt == 0:
+                        closure_index = j
+                        break
+
+            initial_commands.append(command_string +
+                                    string_to_be_closed[:j+1])
+            encoded_text += encoder[command] + string_to_be_closed[j+1:]
+
+    return encoded_text, initial_commands
+
+
+
+def encode_inline_latex(text):
+    initial_commands = {}
+
+    # encode inline math
+    encoded_text = text
+
+    initial_math = []
+    math_inline = encoded_text.split("$")
+    for i in np.arange(1, len(math_inline), 2):
+        initial_math.append('$'+math_inline[i]+'$')
+    encoded_text = encoder['math'].join(math_inline[::2])
+    initial_commands['math'] = initial_math
+
+    # encode all the other functions
+    for command in ['cite', 'ref', 'url']:
+        encoded_text, these_commands = encode_command(encoded_text,
+                                                      command)
+        initial_commands[command] = these_commands
+
+    return encoded_text, initial_commands
+
+
 def translate_line(text, language, translator=None):
     if translator is None:
         trans = Translator()
     else:
         trans = translator
     try:
-        translated_text = trans.translate(text, language).text
-        refined_text = refine_latex_translation(translated_text)
+        encoded_text, initial_commands = encode_inline_latex(text)
+        translated_text = trans.translate(encoded_text, language).text
+        # translated_text = trans.translate(text, language).text
+        # refined_text = refine_latex_translation(translated_text)
     except Exception as e:
-        refined_text = text
-        print "Failed to translate: {}".format(refined_text)
+        translated_text = text
+        print "Failed to translate: {}".format(text)
         print e
         print 'Skipping...'
 
 
-    return refined_text
+    return translated_text
 
 if __name__ == "__main__":
     args = get_args()
-    translate_line(args.input_text, args.language)
+    trans_line = translate_line(args.input_text, args.language)
+    print trans_line
