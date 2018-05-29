@@ -10,7 +10,8 @@ import argparse
 import numpy as np
 
 encoder = dict([(x, ''.join([str(n)+x[n] for n in np.arange(len(x))]))
-                for x in ['math', 'cite', 'ref', 'url']])
+                for x in ['cite', 'ref', 'url',
+                          'textbf', 'textit', 'math']])
 
 decoder = {}
 for k, v in encoder.items():
@@ -81,22 +82,22 @@ def encode_command(text, command):
         for i in np.arange(1, len(command_inlines)):
             string_to_be_closed = command_inlines[i]
             cnt = 1
-            closure_index = 0
             for j, ch in enumerate(string_to_be_closed):
                 if ch == '{':
                     cnt += 1
                 elif ch == '}':
                     cnt -= 1
                     if cnt == 0:
-                        closure_index = j
                         break
-
-            initial_commands.append(command_string +
-                                    string_to_be_closed[:j+1])
+            if command == 'ref':
+                initial_commands.append(command_string +
+                string_to_be_closed[:j+1].replace(' ', ''))
+            else:
+                initial_commands.append(command_string +
+                                        string_to_be_closed[:j+1])
             encoded_text += encoder[command] + string_to_be_closed[j+1:]
 
     return encoded_text, initial_commands
-
 
 
 def encode_inline_latex(text):
@@ -113,12 +114,28 @@ def encode_inline_latex(text):
     initial_commands['math'] = initial_math
 
     # encode all the other functions
-    for command in ['cite', 'ref', 'url']:
+    for command in encoder.keys():
+        if command == 'math':
+            continue
+
         encoded_text, these_commands = encode_command(encoded_text,
                                                       command)
         initial_commands[command] = these_commands
 
     return encoded_text, initial_commands
+
+
+def decode_text(text, initial_commands):
+    processed_text = text
+    for command, these_commands in initial_commands.items():
+        if not these_commands:
+            continue
+        processed_text = processed_text.split(encoder[command])
+        interleaved = [val for pair in zip(processed_text,
+                                           these_commands)
+                       for val in pair]
+        processed_text = ''.join(interleaved + [processed_text[-1]])
+    return processed_text
 
 
 def translate_line(text, language, translator=None):
@@ -129,8 +146,7 @@ def translate_line(text, language, translator=None):
     try:
         encoded_text, initial_commands = encode_inline_latex(text)
         translated_text = trans.translate(encoded_text, language).text
-        # translated_text = trans.translate(text, language).text
-        # refined_text = refine_latex_translation(translated_text)
+        translated_text = decode_text(translated_text, initial_commands)
     except Exception as e:
         translated_text = text
         print "Failed to translate: {}".format(text)
